@@ -22,27 +22,52 @@ async function fetchMovies(category, searchWord) {
                 // Create a new card element
                 const card = document.createElement('div');
                 card.className = 'col-sm-6 col-md-4 col-lg-4';
-                if(category=="person"){
+                if(category === "person"){
                     if(!movies[i].profile_path){
-                        movies[i].profile_path = "./images/default.profile.jpg"
+                        movies[i].profile_path = "./images/default.profile.jpg";
                     } else {
-                        movies[i].profile_path = `https://image.tmdb.org/t/p/w500/${movies[i].profile_path}`
+                        movies[i].profile_path = `https://image.tmdb.org/t/p/w500${movies[i].profile_path}`;
                     }
 
-                    let cardHTML = `<div class="card mb-3" style="width: 100%;">
-                       <img class="card-img-top" src="${movies[i].profile_path}" style="width:100%;height:400px;object-fit:cover;" alt="${movies[i].name}">
-                       <div class="card-body">
-                       <h5 class="card-title">${movies[i].name}</h5>
-                       <p class="card-text text-muted">${movies[i].known_for_department || ''}</p>`;
+                    // 🎬 Формируем список известных работ из known_for
+                    let knownForHTML = '';
+                    if(movies[i].known_for && movies[i].known_for.length > 0){
+                        const topKnown = movies[i].known_for.slice(0, 4); // Берём первые 4 работы
 
-                    cardHTML += `<div id="filmography-${movies[i].id}" class="mt-3">
-                       <small class="text-muted">Загрузка фильмографии...</small>
-                       <div class="spinner-border spinner-border-sm" role="status"></div>
-                       </div>`;
-                    cardHTML += `</div></div>`;
-                    card.innerHTML = cardHTML;
+                        knownForHTML = `
+                        <div class="mt-3">
+                        <h6 class="mb-2">🎬 Kända roller:</h6>
+                        <ul class="list-unstyled mb-0" style="font-size: 0.85rem;">
+                            ${topKnown.map(item => `
+                                <li class="text-truncate" title="${item.title || item.name}">
+                                    • ${item.title || item.name} 
+                                    <small class="text-muted">
+                                        (${(item.release_date || item.first_air_date || '?').substring(0,4)})
+                                    </small>
+                                </li>
+                            `).join('')}
+                        </ul>
+                        ${movies[i].known_for.length > 4 ?
+                        `<small class="text-muted d-block mt-1">+ ytterligare ${movies[i].known_for.length - 4} titlar</small>`
+                        : ''}
+                        </div>`;
+                    } else {
+                        knownForHTML = '<small class="text-muted mt-2 d-block">Ingen filmografi tillgänglig</small>';
+                    }
 
-                    loadActorFilmography(movies[i].id, `filmography-${movies[i].id}`);
+                    // 🎨 Формируем карточку актёра с фильмографией
+                    card.innerHTML = `
+                      <div class="card mb-3" style="width: 100%;">
+                          <img class="card-img-top" src="${movies[i].profile_path}" 
+                               style="width:100%;height:400px;object-fit:cover;" 
+                               alt="${movies[i].name}">
+                          <div class="card-body">
+                              <h5 class="card-title">${movies[i].name}</h5>
+                              <p class="card-text text-muted">${movies[i].known_for_department || ''}</p>
+                              ${knownForHTML}
+                          </div>
+                      </div>
+                  `;
 
                     container.appendChild(card);
                 }else{
