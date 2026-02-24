@@ -19,7 +19,6 @@ async function fetchMovies(category, searchWord) {
             console.log(movies)
             // Iterate through the movies array
             for (let i = 0; i < 10; i++) {
-                // Create a new card element
                 const card = document.createElement('div');
                 card.className = 'col-sm-6 col-md-4 col-lg-4';
                 if(category === "person"){
@@ -29,7 +28,6 @@ async function fetchMovies(category, searchWord) {
                         movies[i].profile_path = `https://image.tmdb.org/t/p/w500${movies[i].profile_path}`;
                     }
 
-                    // 🎬 Формируем список известных работ из known_for
                     let knownForHTML = '';
                     if(movies[i].known_for && movies[i].known_for.length > 0){
                         const topKnown = movies[i].known_for.slice(0, 4); // Берём первые 4 работы
@@ -55,7 +53,6 @@ async function fetchMovies(category, searchWord) {
                         knownForHTML = '<small class="text-muted mt-2 d-block">Ingen filmografi tillgänglig</small>';
                     }
 
-                    // 🎨 Формируем карточку актёра с фильмографией
                     card.innerHTML = `
                       <div class="card mb-3" style="width: 100%;">
                           <img class="card-img-top" src="${movies[i].profile_path}" 
