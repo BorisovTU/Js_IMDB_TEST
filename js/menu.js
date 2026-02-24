@@ -25,19 +25,26 @@ async function fetchMovies(category, searchWord) {
                 if(category=="person"){
                     if(!movies[i].profile_path){
                         movies[i].profile_path = "./images/default.profile.jpg"
-                    }else{
+                    } else {
                         movies[i].profile_path = `https://image.tmdb.org/t/p/w500/${movies[i].profile_path}`
                     }
-                    card.innerHTML = `
-                    <div class="card" style="width: 100%; margin-bottom: 10px;margin-top: 10px;">
-                    <img class="card-img-top" src="${movies[i].profile_path}" style="width:100%;height:620px;" alt="${movies[i].name}">
-                    <div class="card-body">
-                                    <h5 class="card-title">${movies[i].name}</h5>
-                                    <p class="card-text">${movies[i].known_for_department}</p>
-                                    <a href="#" class="btn btn-primary">Titta</a>
-                                </div>
-                            </div>
-                    `;
+
+                    let cardHTML = `<div class="card mb-3" style="width: 100%;">
+                       <img class="card-img-top" src="${movies[i].profile_path}" style="width:100%;height:400px;object-fit:cover;" alt="${movies[i].name}">
+                       <div class="card-body">
+                       <h5 class="card-title">${movies[i].name}</h5>
+                       <p class="card-text text-muted">${movies[i].known_for_department || ''}</p>`;
+
+                    cardHTML += `<div id="filmography-${movies[i].id}" class="mt-3">
+                       <small class="text-muted">Загрузка фильмографии...</small>
+                       <div class="spinner-border spinner-border-sm" role="status"></div>
+                       </div>`;
+                    cardHTML += `</div></div>`;
+                    card.innerHTML = cardHTML;
+
+                    loadActorFilmography(movies[i].id, `filmography-${movies[i].id}`);
+
+                    container.appendChild(card);
                 }else{
                     if(!movies[i].backdrop_path){
                         movies[i].backdrop_path = "./images/default.jpg"
@@ -141,3 +148,58 @@ document.getElementById('searchForm').addEventListener('submit', function (event
     headerTitle.innerText=selectedValue
 
 });
+
+/**
+ * Laddar och visar en förhandsvisning av skådespelarens filmografi
+ * @param {number} personId - Skådespelarens ID från TMDB
+ * @param {string} containerId - ID på elementet där resultatet ska visas
+ */
+async function loadActorFilmography(personId, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    try {
+        // Hämta filmografi från TMDB API
+        const response = await fetch(
+            `${baseUrl}person/${personId}/movie_credits?api_key=${API_KEY}&language=sv-SE`,
+            options
+        );
+
+        if (!response.ok) throw new Error('Misslyckades hämta data');
+        const data = await response.json();
+
+        // Filtrera och sortera filmer - ta topp 5 mest populära med affisch
+        const topMovies = data.cast
+            .filter(m => m.poster_path && m.title)
+            .sort((a, b) => b.popularity - a.popularity)
+            .slice(0, 5);
+
+        // Hantera fallet där ingen filmografi hittas
+        if (topMovies.length === 0) {
+            container.innerHTML = '<small class="text-muted">Ingen filmografi hittades</small>';
+            return;
+        }
+
+        // Bygg HTML för filmografi-listan
+        const filmographyHTML = `
+            <h6 class="mb-2">🎬 Kända roller:</h6>
+            <ul class="list-unstyled mb-0" style="font-size: 0.9rem;">
+                ${topMovies.map(movie => `
+                    <li class="text-truncate" title="${movie.title}">
+                        • ${movie.title} 
+                        <small class="text-muted">(${movie.release_date?.substring(0,4) || '?'})</small>
+                    </li>
+                `).join('')}
+            </ul>
+            ${data.cast.length > 5 ?
+            `<small class="text-muted d-block mt-1">+ ytterligare ${data.cast.length - 5} filmer</small>`
+            : ''}
+        `;
+
+        container.innerHTML = filmographyHTML;
+
+    } catch (error) {
+        console.error(`Fel vid laddning av filmografi för ${personId}:`, error);
+        container.innerHTML = '<small class="text-danger">Kunde inte ladda filmografi</small>';
+    }
+}
