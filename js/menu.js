@@ -1,227 +1,180 @@
 const headerTitle = document.getElementById('headerTitle');
 
 async function fetchMovies(category, searchWord) {
-
-  try{
-    if(searchWord){
-        response = await fetch(baseUrl +'search/'+category+"?query="+searchWord+"&", options);
-    }else{
-        response = await fetch(baseUrl +  "movie/"+category, options);
-    }
-    if(response.ok){
-        let movies = await response.json();
-        movies = movies.results;
-        //displayFunction(movie);
-        if(movies){
-            // Assuming there is a container element to append the cards to
-            const container = document.querySelector('.container .row');
-            container.innerHTML = '';
-            console.log(movies)
-            // Iterate through the movies array
-            for (let i = 0; i < 10; i++) {
-                const card = document.createElement('div');
-                card.className = 'col-sm-6 col-md-4 col-lg-4';
-                if(category === "person"){
-                    if(!movies[i].profile_path){
-                        movies[i].profile_path = "./images/default.profile.jpg";
-                    } else {
-                        movies[i].profile_path = `https://image.tmdb.org/t/p/w500${movies[i].profile_path}`;
-                    }
-
-                    let knownForHTML = '';
-                    if(movies[i].known_for && movies[i].known_for.length > 0){
-                        const topKnown = movies[i].known_for.slice(0, 4); // Берём первые 4 работы
-
-                        knownForHTML = `
-                        <div class="mt-3">
-                        <h6 class="mb-2">🎬 Kända roller:</h6>
-                        <ul class="list-unstyled mb-0" style="font-size: 0.85rem;">
-                            ${topKnown.map(item => `
-                                <li class="text-truncate" title="${item.title || item.name}">
-                                    • ${item.title || item.name} 
-                                    <small class="text-muted">
-                                        (${(item.release_date || item.first_air_date || '?').substring(0,4)})
-                                    </small>
-                                </li>
-                            `).join('')}
-                        </ul>
-                        ${movies[i].known_for.length > 4 ?
-                        `<small class="text-muted d-block mt-1">+ ytterligare ${movies[i].known_for.length - 4} titlar</small>`
-                        : ''}
-                        </div>`;
-                    } else {
-                        knownForHTML = '<small class="text-muted mt-2 d-block">Ingen filmografi tillgänglig</small>';
-                    }
-
-                    card.innerHTML = `
-                      <div class="card mb-3" style="width: 100%;">
-                          <img class="card-img-top" src="${movies[i].profile_path}" 
-                               style="width:100%;height:400px;object-fit:cover;" 
-                               alt="${movies[i].name}">
-                          <div class="card-body">
-                              <h5 class="card-title">${movies[i].name}</h5>
-                              <p class="card-text text-muted">${movies[i].known_for_department || ''}</p>
-                              ${knownForHTML}
-                          </div>
-                      </div>
-                  `;
-
-                    container.appendChild(card);
-                }else{
-                    if(!movies[i].backdrop_path){
-                        movies[i].backdrop_path = "./images/default.jpg"
-                    }else{
-                        movies[i].backdrop_path = `https://image.tmdb.org/t/p/w500/${movies[i].backdrop_path}`
-                    }
-                    card.innerHTML = `
-                    <div class="card" style="width: 100%; margin-bottom: 10px;margin-top: 10px;">
-                    <img class="card-img-top" src="${movies[i].backdrop_path}" style="width:100%;hight:100%;" alt="${movies[i].name}">
-                                <div class="card-body">
-                                    <h5 class="card-title">${movies[i].title}</h5>
-                                    <p class="card-text">${movies[i].overview}</p>
-                                    <a href="#" key="${movies[i].id}" class="btn btn-primary">Titta</a>
-                                </div>
-                            </div>
-                    `;
-                    // Create a "Titta" button
-                    const tittaButton = card.querySelector('.btn-primary');
-
-                    // Add a click event listener to the existing "Titta" button
-                    tittaButton.addEventListener('click', async () => {
-                        console.log(movies[i].id)
-                        // response = await fetch(baseUrl +  "movie/"+category, options);
-
-                        const videoResponse = await fetch(`https://api.themoviedb.org/3/movie/${movies[i].id}/videos`, options);
-                        const videoData = await videoResponse.json();
-
-                        if (videoData.results.length > 0) {
-                            const videoKey = videoData.results[0].key; // Assuming the first video in the list
-
-                            // Dynamically set the video source in the modal
-                            const modalBody = document.querySelector('.modal-body');
-                            modalBody.innerHTML = `
-                                <iframe width="100%" height="315" src="https://www.youtube.com/embed/${videoKey}" frameborder="0" allowfullscreen></iframe>
-                            `;
-
-                            // Show the modal
-                            const videoModal = new bootstrap.Modal(document.getElementById('videoModal'));
-                            videoModal.show();
-                        } else {
-                            console.log('No videos available for this movie.');
-                        }
-                    });
-                }
-
-
-
-                // Append the card to the container
-                container.appendChild(card);
-            };
-        }
-        if (movies.length === 0) {
-        const h1El = document.createElement('h1');
-            updateMainHeading('')
-            h1El.innerText = `Inga resultat funna. Kontrollera om din stavning är korrekt och försök igen!`;
-            divContainer.append(h1El)
-
-        }
-     }
-
-     else if(response.status === 404){
-      throw 404;
-
-     }
-
-     else{
-      throw 'error';
-     }
-
-    }
-    catch(error){
-        console.log(error);
-
-    }
-
-}
-
-// Add click event listener to the anchor element
-document.getElementById("topMovies").addEventListener("click", (event) => {
-    // Prevent the default behavior of the anchor tag
-    event.preventDefault();
-    // fetching the top rated movie 
-    fetchMovies('top_rated', "");
-    headerTitle.innerText="Topp tio filmer"
-
-});
-
-document.getElementById("popularMovies").addEventListener("click", (event) => {
-    // Prevent the default behavior of the anchor tag
-    event.preventDefault();
-    // fetching the popular movie 
-    fetchMovies('popular', "");
-    headerTitle.innerText="Mest populära filmer"
-
-});
-document.getElementById('searchForm').addEventListener('submit', function (event) {
-    event.preventDefault();
-    const selectedValue = document.querySelector('input[name="radio-button"]:checked').value;
-    const searchInput = document.getElementById('input').value;
-    fetchMovies(selectedValue, searchInput);
-    headerTitle.innerText=selectedValue
-
-});
-
-/**
- * Laddar och visar en förhandsvisning av skådespelarens filmografi
- * @param {number} personId - Skådespelarens ID från TMDB
- * @param {string} containerId - ID på elementet där resultatet ska visas
- */
-async function loadActorFilmography(personId, containerId) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
     try {
-        // Hämta filmografi från TMDB API
-        const response = await fetch(
-            `${baseUrl}person/${personId}/movie_credits?api_key=${API_KEY}&language=sv-SE`,
-            options
-        );
+        let url;
+        if (searchWord && searchWord.trim() !== '') {
+            const query = encodeURIComponent(searchWord.trim());
+            url = `${baseUrl}search/${category}?query=${query}&language=sv-SE`;
+        } else {
+            url = `${baseUrl}movie/${category}?language=sv-SE`;
+        }
 
-        if (!response.ok) throw new Error('Misslyckades hämta data');
+        const response = await fetch(url, options);
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error('404');
+            }
+            throw new Error('Nätverksfel');
+        }
+
         const data = await response.json();
+        const movies = data.results;
+        const container = document.querySelector('.container .row');
 
-        // Filtrera och sortera filmer - ta topp 5 mest populära med affisch
-        const topMovies = data.cast
-            .filter(m => m.poster_path && m.title)
-            .sort((a, b) => b.popularity - a.popularity)
-            .slice(0, 5);
+        if (container) {
+            container.innerHTML = '';
+        }
 
-        // Hantera fallet där ingen filmografi hittas
-        if (topMovies.length === 0) {
-            container.innerHTML = '<small class="text-muted">Ingen filmografi hittades</small>';
+        if (!movies || movies.length === 0) {
+            updateMainHeading('');
+            if (container) {
+                if (category === 'person') {
+                    container.innerHTML = '<div class="col-12"><p class="text-muted fs-5">Inga skådespelare hittades</p></div>';
+                } else {
+                    container.innerHTML = '<div class="col-12"><p class="text-muted fs-5">Inga filmer hittades</p></div>';
+                }
+            }
             return;
         }
 
-        // Bygg HTML för filmografi-listan
-        const filmographyHTML = `
-            <h6 class="mb-2">🎬 Kända roller:</h6>
-            <ul class="list-unstyled mb-0" style="font-size: 0.9rem;">
-                ${topMovies.map(movie => `
-                    <li class="text-truncate" title="${movie.title}">
-                        • ${movie.title} 
-                        <small class="text-muted">(${movie.release_date?.substring(0,4) || '?'})</small>
-                    </li>
-                `).join('')}
-            </ul>
-            ${data.cast.length > 5 ?
-            `<small class="text-muted d-block mt-1">+ ytterligare ${data.cast.length - 5} filmer</small>`
-            : ''}
-        `;
+        const limit = Math.min(movies.length, 10);
+        for (let i = 0; i < limit; i++) {
+            const card = document.createElement('div');
+            card.className = 'col-sm-6 col-md-4 col-lg-4';
 
-        container.innerHTML = filmographyHTML;
+            if (category === 'person') {
+                const profilePath = movies[i].profile_path
+                    ? `https://image.tmdb.org/t/p/w500${movies[i].profile_path}`
+                    : './images/default.profile.jpg';
+
+                let knownForHTML = '';
+                if (movies[i].known_for && movies[i].known_for.length > 0) {
+                    const topKnown = movies[i].known_for.slice(0, 4);
+                    knownForHTML = `
+                        <div class="mt-3">
+                            <h6 class="mb-2">🎬 Kända roller:</h6>
+                            <ul class="list-unstyled mb-0" style="font-size: 0.85rem;">
+                                ${topKnown.map(item => {
+                        const title = item.title || item.name || 'Okänd titel';
+                        const date = item.release_date || item.first_air_date || '';
+                        const year = date ? date.substring(0, 4) : '?';
+                        return `<li class="text-truncate" title="${title}">• ${title} <small class="text-muted">(${year})</small></li>`;
+                    }).join('')}
+                            </ul>
+                            ${movies[i].known_for.length > 4
+                        ? `<small class="text-muted d-block mt-1">+ ytterligare ${movies[i].known_for.length - 4} titlar</small>`
+                        : ''}
+                        </div>
+                    `;
+                } else {
+                    knownForHTML = '<small class="text-muted mt-2 d-block">Ingen filmografi tillgänglig</small>';
+                }
+
+                card.innerHTML = `
+                    <div class="card mb-3" style="width: 100%;">
+                        <img class="card-img-top" src="${profilePath}" 
+                             style="width:100%;height:400px;object-fit:cover;" 
+                             alt="${movies[i].name}">
+                        <div class="card-body">
+                            <h5 class="card-title">${movies[i].name}</h5>
+                            <p class="card-text text-muted">${movies[i].known_for_department || ''}</p>
+                            ${knownForHTML}
+                        </div>
+                    </div>
+                `;
+
+            }
+            else {
+                const backdropPath = movies[i].backdrop_path || movies[i].poster_path
+                    ? `https://image.tmdb.org/t/p/w500${movies[i].backdrop_path || movies[i].poster_path}`
+                    : './images/default.jpg';
+
+                const year = movies[i].release_date ? movies[i].release_date.substring(0, 4) : '';
+                const titleWithYear = year ? `${movies[i].title} (${year})` : movies[i].title;
+
+                card.innerHTML = `
+                    <div class="card mb-3" style="width: 100%;">
+                        <img class="card-img-top" src="${backdropPath}" 
+                             style="width:100%;height:200px;object-fit:cover;" 
+                             alt="${movies[i].title}">
+                        <div class="card-body">
+                            <h5 class="card-title">${titleWithYear}</h5>
+                            <p class="card-text text-truncate">${movies[i].overview || ''}</p>
+                            <a href="#" data-movie-id="${movies[i].id}" class="btn btn-primary">Titta</a>
+                        </div>
+                    </div>
+                `;
+
+                const tittaButton = card.querySelector('.btn-primary');
+                tittaButton.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const movieId = movies[i].id;
+
+                    try {
+                        const videoResponse = await fetch(`${baseUrl}movie/${movieId}/videos?language=sv-SE`, options);
+                        const videoData = await videoResponse.json();
+
+                        if (videoData.results && videoData.results.length > 0) {
+                            const videoKey = videoData.results[0].key;
+                            const modalBody = document.querySelector('.modal-body');
+                            modalBody.innerHTML = `
+                                <div class="ratio ratio-16x9">
+                                    <iframe src="https://www.youtube.com/embed/${videoKey}" 
+                                            frameborder="0" 
+                                            allowfullscreen>
+                                    </iframe>
+                                </div>
+                            `;
+                            const videoModal = new bootstrap.Modal(document.getElementById('videoModal'));
+                            videoModal.show();
+                        } else {
+                            alert('Ingen trailer tillgänglig för denna film.');
+                        }
+                    } catch (error) {
+                        console.error('Fel vid hämtning av trailer:', error);
+                        alert('Kunde inte ladda trailern.');
+                    }
+                });
+            }
+
+            if (container) {
+                container.appendChild(card);
+            }
+        }
 
     } catch (error) {
-        console.error(`Fel vid laddning av filmografi för ${personId}:`, error);
-        container.innerHTML = '<small class="text-danger">Kunde inte ladda filmografi</small>';
+        console.error('Fel i fetchMovies:', error);
+        const container = document.querySelector('.container .row');
+        if (container) {
+            container.innerHTML = '<div class="col-12"><p class="text-danger">Ett fel uppstod vid hämtning av data.</p></div>';
+        }
     }
 }
+
+function updateMainHeading(text) {
+    if (headerTitle) {
+        headerTitle.innerText = text;
+    }
+}
+
+document.getElementById("topMovies")?.addEventListener("click", (event) => {
+    event.preventDefault();
+    fetchMovies('top_rated', '');
+    updateMainHeading('Topp tio filmer');
+});
+
+document.getElementById("popularMovies")?.addEventListener("click", (event) => {
+    event.preventDefault();
+    fetchMovies('popular', '');
+    updateMainHeading('Mest populära filmer');
+});
+
+document.getElementById('searchForm')?.addEventListener('submit', function (event) {
+    event.preventDefault();
+    const selectedValue = document.querySelector('input[name="radio-button"]:checked')?.value;
+    const searchInput = document.getElementById('input')?.value || '';
+    fetchMovies(selectedValue, searchInput);
+    updateMainHeading(selectedValue === 'person' ? 'Skådespelare' : 'Filmer');
+});
